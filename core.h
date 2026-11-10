@@ -13,11 +13,11 @@ const u32 kTaps = 5;
 // runs three). The left side runs series A then C, the right B then A, so the
 // sides decorrelate. Each stage has a power-of-two region per side, so one
 // shared counter and a mask address them all.
-const u32 kStages = 8;
-const u32 kLeftLength[kStages] = {77, 111, 199, 326, 107, 142, 277, 379};
-const u32 kRightLength[kStages] = {101, 122, 222, 333, 77, 111, 199, 326};
-const u32 kRegion[kStages] = {128, 128, 256, 512, 128, 256, 512, 512};
-const u32 kOffset[kStages] = {0, 128, 256, 512, 1024, 1152, 1408, 1920};
+constexpr u32 kStages = 8;
+constexpr u32 kLeftLength[kStages] = {77, 111, 199, 326, 107, 142, 277, 379};
+constexpr u32 kRightLength[kStages] = {101, 122, 222, 333, 77, 111, 199, 326};
+constexpr u32 kRegion[kStages] = {128, 128, 256, 512, 128, 256, 512, 512};
+constexpr u32 kOffset[kStages] = {0, 128, 256, 512, 1024, 1152, 1408, 1920};
 const u32 kDiffuserWords = 2432;  // one side's: the sum of kRegion
 
 // The send buffer, the whole 512 KiB (proven on the OP-XY), then the left and

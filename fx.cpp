@@ -40,38 +40,42 @@ const i32 kLevel[kTaps] = {kMaximum, 1664132314, 1433533775, 1289572734, 1187941
 // tape instead of clipping.
 const i32 kCeiling = 1073741824;
 
-i32 add(i32 a, i32 b) {  // saturating
-    if (b > 0 && a > kMaximum - b) return kMaximum;
-    if (b < 0 && a < kMinimum - b) return kMinimum;
-    return a + b;
-}
+using opxy::q31::add;  // saturating, one instruction on the device
 
 i32 control(i32 word) { return word < 0 ? 0 : word; }
 
 // a and b blended, b's share Q31.
 i32 blend(i32 a, i32 b, i32 share) { return add(multiply(a, kMaximum - share), multiply(b, share)); }
 
-// One side's sample `age` frames back (1 is the last written), as Q31, or
-// silence where this effect has not written since initialize: the buffer is
-// never cleared.
-i32 sample(const i32* lines, const State& state, u32 age, unsigned side) {
-    if (age > state.written) return 0;
-    const u32 at = state.write >= age ? state.write - age : state.write + kLine - age;
-    return lines[side * kLine + at];
-}
-
-// A frame written to the lines.
-void store(i32* lines, const State& state, i32 left, i32 right) {
-    lines[state.write] = left;
-    lines[kLine + state.write] = right;
-}
-
-// One side of the line `delay` (Q8) samples back, between its two nearest samples.
-i32 tap(const i32* line, const State& state, i32 delay, unsigned side) {
-    const u32 whole = static_cast<u32>(delay) >> 8, part = static_cast<u32>(delay) & 255;
-    const i32 near = sample(line, state, whole, side), far = sample(line, state, whole + 1, side);
-    return near / 256 * static_cast<i32>(256 - part) + far / 256 * static_cast<i32>(part);
-}
+// The two lines: reads `delay` (Q8) samples back between the two nearest
+// samples, or silence where this effect has not written since initialize (the
+// buffer is never cleared), and writes a frame.
+struct Reader {
+    const i32* sides[2];
+    i32* const left_line;
+    u32 write, written;
+    Reader(i32* left_side, i32* right_side, u32 at, u32 count)
+        : sides{left_side, right_side}, left_line(left_side), write(at), written(count) {}
+    i32 sample(unsigned side, u32 age) const {  // 1 is the last written
+        if (__builtin_expect(age > written, 0)) return 0;
+        u32 at = write - age;
+        if (static_cast<i32>(at) < 0) at += kLine;
+        return sides[side][at];
+    }
+    i32 tap(unsigned side, i32 delay) const {
+        const u32 whole = static_cast<u32>(delay) >> 8, part = static_cast<u32>(delay) & 255;
+        const i32 near = sample(side, whole), far = sample(side, whole + 1);
+        // near + (far - near) x part / 256, halved first so it can't overflow
+        const i32 step = opxy::q31::half(far) - opxy::q31::half(near);
+        return near + 2 * multiply(step, static_cast<i32>(part << 23));
+    }
+    void store(i32 l, i32 r) {
+        left_line[write] = l;
+        left_line[kLine + write] = r;
+        write = write + 1 == kLine ? 0 : write + 1;
+        if (written < kLine) ++written;
+    }
+};
 
 // About a 23 ms glide, so a new time slides like tape instead of clicking.
 i32 glide(i32 value, i32 target) {
@@ -93,11 +97,31 @@ i32 clamp_time(i64 value) {
 // One allpass stage on one side: the region's sample `length` back, or
 // silence until the diffuser has run that long since initialize (it has
 // written `diffused` samples, so the one `length` back exists from then on).
-i32 allpass(i32* region, u32 mask, u32 length, const State& state, i32 g, i32 x) {
-    const i32 held = state.diffused >= length ? region[(state.count - length) & mask] : 0;
+// Each stage's place and length are constants, so the series compiles to
+// straight code.
+template <u32 S, unsigned Side, bool Warm>
+inline i32 allpass(i32* diffuser, u32 count, u32 diffused, i32 g, i32 x) {
+    constexpr u32 length = Side ? kRightLength[S] : kLeftLength[S];
+    constexpr u32 mask = kRegion[S] - 1;
+    i32* const region = diffuser + kOffset[S];
+    const i32 held = Warm || diffused >= length ? region[(count - length) & mask] : 0;
     const i32 v = add(x, -multiply(g, held));
-    region[state.count & mask] = v;
+    region[count & mask] = v;
     return add(multiply(g, v), held);
+}
+
+// One side's series: two stages at the inner gain, two at the outer, twice.
+template <unsigned Side, bool Warm>
+inline i32 diffuse(i32* diffuser, u32 count, u32 diffused, i32 inner, i32 outer, i32 x) {
+    static_assert(kStages == 8, "the series below names each stage");
+    x = allpass<0, Side, Warm>(diffuser, count, diffused, inner, x);
+    x = allpass<1, Side, Warm>(diffuser, count, diffused, inner, x);
+    x = allpass<2, Side, Warm>(diffuser, count, diffused, outer, x);
+    x = allpass<3, Side, Warm>(diffuser, count, diffused, outer, x);
+    x = allpass<4, Side, Warm>(diffuser, count, diffused, inner, x);
+    x = allpass<5, Side, Warm>(diffuser, count, diffused, inner, x);
+    x = allpass<6, Side, Warm>(diffuser, count, diffused, outer, x);
+    return allpass<7, Side, Warm>(diffuser, count, diffused, outer, x);
 }
 }
 
@@ -201,65 +225,106 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
     const i32 loop_gain = multiply(state.feedback, state.limit);
     u32 peak = 0;
 
+    // The block runs on locals: the compiler can't tell the state from the
+    // audio and lines it writes, so it would reload the state every sample.
+    // Settled controls take the short path: no glide, crossing or average.
+    bool gliding = false;
+    for (u32 k = 0; k < active; ++k)
+        if (state.delay[0][k] != delay[0][k] || state.delay[1][k] != delay[1][k]) gliding = true;
+    i32 at[2][kTaps], level[kTaps], share[kTaps];
+    for (u32 k = 0; k < kTaps; ++k) {
+        at[0][k] = state.delay[0][k];
+        at[1][k] = state.delay[1][k];
+        level[k] = state.gain[k];
+        share[k] = state.feed[k];
+    }
+    const i32 crossing = state.cross, damping = state.damping, mixing = state.mix;
+    const i32 inner_g = state.inner, outer_g = state.outer;
+    const bool plain = crossing == 0 && damping == 0;
+    i32 last_left = state.last[0], last_right = state.last[1];
+    Reader reader{line, line + kLine, state.write, state.written};
+    u32 count = state.count, diffused = state.diffused;
+    const bool warm = diffused >= 512;  // every stage's samples exist (each length < 512)
+
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
         // The taps, each side its own times, gliding like tape.
         i32 out_left = 0, out_right = 0, fed_left = 0, fed_right = 0;
         for (u32 k = 0; k < active; ++k) {
-            state.delay[0][k] = glide(state.delay[0][k], delay[0][k]);
-            state.delay[1][k] = glide(state.delay[1][k], delay[1][k]);
-            const i32 l = tap(line, state, state.delay[0][k], 0), r = tap(line, state, state.delay[1][k], 1);
-            out_left = add(out_left, multiply(l, state.gain[k]));
-            out_right = add(out_right, multiply(r, state.gain[k]));
-            if (state.feed[k] == kMaximum) {  // settled: the one tap fed back
+            if (__builtin_expect(gliding, 0)) {
+                at[0][k] = glide(at[0][k], delay[0][k]);
+                at[1][k] = glide(at[1][k], delay[1][k]);
+            }
+            const i32 l = reader.tap(0, at[0][k]), r = reader.tap(1, at[1][k]);
+            out_left = add(out_left, multiply(l, level[k]));
+            out_right = add(out_right, multiply(r, level[k]));
+            if (share[k] == kMaximum) {  // settled: the one tap fed back
                 fed_left = l;
                 fed_right = r;
-            } else if (state.feed[k]) {  // crossfading to a new last tap
-                fed_left = add(fed_left, multiply(l, state.feed[k]));
-                fed_right = add(fed_right, multiply(r, state.feed[k]));
+            } else if (share[k]) {  // crossfading to a new last tap
+                fed_left = add(fed_left, multiply(l, share[k]));
+                fed_right = add(fed_right, multiply(r, share[k]));
             }
         }
 
         // What feeds back: the last tap, crossed over when Pingpong is on,
-        // averaged with the sample before by the Karplus-Strong share.
-        const i32 back_left = blend(fed_left, fed_right, state.cross);
-        const i32 back_right = blend(fed_right, fed_left, state.cross);
-        const i32 string_left = blend(back_left, add(opxy::q31::half(back_left), opxy::q31::half(state.last[0])), state.damping);
-        const i32 string_right = blend(back_right, add(opxy::q31::half(back_right), opxy::q31::half(state.last[1])), state.damping);
-        state.last[0] = back_left;
-        state.last[1] = back_right;
-        // The input at half level, as Ping Pong's: each side its own, or with
+        // averaged with the sample before by the Karplus-Strong share. The
+        // input at half level, as Ping Pong's: each side its own, or with
         // Pingpong on both sides together into the left only, so it bounces.
         const i32 half_left = opxy::q31::half(left[i]), half_right = opxy::q31::half(right[i]);
-        const i32 both = add(opxy::q31::half(half_left), opxy::q31::half(half_right));
+        i32 string_left = fed_left, string_right = fed_right, dry_left = half_left, dry_right = half_right;
+        if (!plain) {
+            const i32 back_left = blend(fed_left, fed_right, crossing);
+            const i32 back_right = blend(fed_right, fed_left, crossing);
+            string_left = blend(back_left, add(opxy::q31::half(back_left), opxy::q31::half(last_left)), damping);
+            string_right = blend(back_right, add(opxy::q31::half(back_right), opxy::q31::half(last_right)), damping);
+            last_left = back_left;
+            last_right = back_right;
+            const i32 both = add(opxy::q31::half(half_left), opxy::q31::half(half_right));
+            dry_left = blend(half_left, both, crossing);
+            dry_right = multiply(half_right, kMaximum - crossing);
+        } else {
+            last_left = fed_left;
+            last_right = fed_right;
+        }
         const i32 repeat_left = multiply(string_left, loop_gain), repeat_right = multiply(string_right, loop_gain);
         const u32 size_left = repeat_left < 0 ? 0u - static_cast<u32>(repeat_left) : static_cast<u32>(repeat_left);
         const u32 size_right = repeat_right < 0 ? 0u - static_cast<u32>(repeat_right) : static_cast<u32>(repeat_right);
-        if (size_left > peak) peak = size_left;
-        if (size_right > peak) peak = size_right;
-        i32 in_left = add(blend(half_left, both, state.cross), repeat_left);
-        i32 in_right = add(multiply(half_right, kMaximum - state.cross), repeat_right);
+        const u32 size = size_left > size_right ? size_left : size_right;
+        if (size > peak) peak = size;
+        i32 in_left = add(dry_left, repeat_left);
+        i32 in_right = add(dry_right, repeat_right);
 
         // Diffuse: the allpass series, blended in by Diffuse.
-        if (state.mix) {
-            i32 l = in_left, r = in_right;
-            for (u32 s = 0; s < kStages; ++s) {
-                const i32 g = s & 2 ? state.outer : state.inner;
-                const u32 mask = kRegion[s] - 1;
-                l = allpass(left_diffuser + kOffset[s], mask, kLeftLength[s], state, g, l);
-                r = allpass(right_diffuser + kOffset[s], mask, kRightLength[s], state, g, r);
+        if (mixing) {
+            i32 l, r;
+            if (__builtin_expect(warm, 1)) {
+                l = diffuse<0, true>(left_diffuser, count, diffused, inner_g, outer_g, in_left);
+                r = diffuse<1, true>(right_diffuser, count, diffused, inner_g, outer_g, in_right);
+            } else {
+                l = diffuse<0, false>(left_diffuser, count, diffused, inner_g, outer_g, in_left);
+                r = diffuse<1, false>(right_diffuser, count, diffused, inner_g, outer_g, in_right);
             }
-            in_left = blend(in_left, l, state.mix);
-            in_right = blend(in_right, r, state.mix);
-            ++state.count;
-            if (state.diffused < 512) ++state.diffused;
+            in_left = blend(in_left, l, mixing);
+            in_right = blend(in_right, r, mixing);
+            ++count;
+            if (diffused < 512) ++diffused;
         }
 
-        store(line, state, in_left, in_right);
-        state.write = state.write + 1 == kLine ? 0 : state.write + 1;
-        if (state.written < kLine) ++state.written;
+        reader.store(in_left, in_right);
         left[i] = out_left;
         right[i] = out_right;
     }
+
+    for (u32 k = 0; k < kTaps; ++k) {
+        state.delay[0][k] = at[0][k];
+        state.delay[1][k] = at[1][k];
+    }
+    state.last[0] = last_left;
+    state.last[1] = last_right;
+    state.write = reader.write;
+    state.written = reader.written;
+    state.count = count;
+    state.diffused = diffused;
 
     // The limiter, once a block: down at once to what holds this block's
     // loudest repeat at the ceiling, back up over about 0.2 s.
