@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "sdk": "1.10",
+  "kind": "effect",
+  "description": "One echo that trails into many: five taps from filter, flanger and chorus to resonator and reverb, with Deviate, Curve, Rnd and Pingpong. After AS D-Delay.",
+  "dryParameter": "dry"
+}
