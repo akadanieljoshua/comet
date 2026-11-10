@@ -16,7 +16,7 @@ proven on the OP-XY: its tap reading, its unwritten-sample check, its glide and
 its Q31 arithmetic, in one per-sample loop, with Comet's controls on top.
 
 Its page is the two-row header, so Time reads as a note length or in
-milliseconds, and under it the taps as AS D-Delay draws them: a numbered row
+milliseconds, and under it the taps, in the spirit of AS D-Delay's display: a numbered row
 for each tap, its left side above its right, on one fixed timeline, 2.5 s
 long and marked every half second (`0 500ms 1 s 1.5 s 2 s 2.5 s`) whatever
 Sync and Pingpong are; a tap or bounce past 2.5 s stops at its end. While

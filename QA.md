@@ -34,7 +34,7 @@ removes or alters something a person would check on the device updates its lines
 
 Page 1: **Sync, Time, Feedback, Dry**. Page 2: **Taps, Deviate, Curve, Diffuse**. Shift + encoder 1:
 **Mode**; Shift + encoder 2: **Pingpong**. Under the header, the taps
-as AS D-Delay draws them.
+in the spirit of AS D-Delay's display.
 
 - [ ] The header shows both rows, page 1 on top and emphasised; press any encoder: all four switch to
       page 2 together and the emphasis moves to the second row; press again for page 1. Each control keeps
@@ -194,7 +194,7 @@ Not failures, but worth confirming they haven't changed.
 
 - The line holds about 1.43 s: longer spreads stop there
 - Comet has no LFO of its own: use the send's LFO on Time (page 1's controls are the send LFO's targets)
-- Rnd's scatter is fixed per tap count: there is no Randomize control to re-roll it as D-Delay has
+- There is no Randomize button: each further `rnd` on Mode is a new, fixed random set (127 in all)
 - The page draws where the taps are, not the repeats themselves; a synced tap past 1.43 s (slow tempos)
   shows where the note falls, though the audio stops it at 1.43 s
 - D-Delay's filter (and its LFO), time LFO, Excite drive, jitter and per-tap polarity are not included

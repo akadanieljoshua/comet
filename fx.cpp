@@ -1,7 +1,8 @@
 #include "core.h"
 #include <opxy/q31.hpp>
 
-// Comet, after Sabroi's AS D-Delay, on the core Ping Pong's foundation. The
+// Comet, inspired by the Ursa Major SST-282 and Sabroi's AS D-Delay, on the
+// core Ping Pong's foundation. The
 // send enters the lines at half level with the fed-back repeats, through the
 // diffuser; up to five taps per side read the lines back.
 //
