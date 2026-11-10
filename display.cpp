@@ -56,9 +56,9 @@ const char* const kMarkNames[kShownMarks] = {"0", "500ms", "1 s", "1.5 s", "2 s"
 // A tap in the timeline's units: `multiple` times Time (Q15). A tap stops at
 // the line's end, 1.43 s; a bounce is Time and then a tap, each stopped there.
 i32 units_of(const i32* slots, u32 multiple, bool bounce) {
-    if (synced(slots[0])) return static_cast<i32>((static_cast<i64>(kDivisionTicks[division(slots[1])]) * multiple) >> 7);
+    if (synced(slots[0])) return static_cast<i32>((kDivisionTicks[division(slots[1])] * multiple) >> 7);  // < 2^25
     const i64 time = free_centi_ms(slots[1]);
-    i64 tap = (time * (bounce ? multiple - 32768 : multiple)) >> 15;
+    i64 tap = wide(static_cast<i32>(time), static_cast<i32>(bounce ? multiple - 32768 : multiple)) >> 15;
     if (tap > kLongestCenti) tap = kLongestCenti;
     return static_cast<i32>(bounce ? (time > kLongestCenti ? kLongestCenti : time) + tap : tap);
 }
@@ -94,7 +94,7 @@ void draw_taps(DisplayState& state, const Input& input, Frame& frame) {
             }
             for (u32 j = kTrail - 1; j > 0; --j) state.trail[j][side][k] = state.trail[j - 1][side][k];
             state.trail[0][side][k] = at;
-            at += static_cast<i32>((static_cast<i64>(target[side][k] - at) * share) >> 10);
+            at += ((target[side][k] - at) * share) >> 10;  // < 2^29: a few seconds in hundredths of a ms, Q10
         }
     state.started = 1;
     state.track = input.track;
@@ -104,7 +104,7 @@ void draw_taps(DisplayState& state, const Input& input, Frame& frame) {
     // no runtime for one).
     const i64 factor = sync ? kSyncedFactor : kFreeFactor;
     auto pixels = [&](i32 units) {
-        const i64 x = (static_cast<i64>(units) * factor) >> 16;
+        const i64 x = wide(units, static_cast<i32>(factor)) >> 16;
         return (kLeft << 10) + static_cast<i32>(x > (kWidth << 10) ? kWidth << 10 : x < 0 ? 0 : x);
     };
 

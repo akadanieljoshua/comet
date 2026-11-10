@@ -1,5 +1,6 @@
 #pragma once
 #include <opxy/types.hpp>
+#include <opxy/q31.hpp>
 #include "range.h"
 
 // Shared by the audio (fx.cpp) and the page (display.cpp): what Sync and Time
@@ -7,6 +8,10 @@
 namespace comet {
 using opxy::i32;
 using opxy::i64;
+
+// A full 32 x 32 product. The OP-XY's module has no 64-bit multiply helper
+// (__muldi3), so every wide product goes through the SDK's one instruction.
+inline i64 wide(i32 a, i32 b) { return opxy::q31::wide(a, b); }
 using opxy::u32;
 
 const u32 kDivisions = 13;
@@ -43,13 +48,13 @@ inline u32 exp2_q16(u32 e) {
 
 // Time while Sync is off rises evenly in pitch from 0.2 ms, over range.h's
 // kFreeOctaves: to 1.4 s in Comet, 2.5 s in Comet Long.
-inline u32 free_power(i32 time_word) { return exp2_q16(static_cast<u32>((static_cast<i64>(unit15(time_word)) * kFreeOctaves) >> 15)); }
+inline u32 free_power(i32 time_word) { return exp2_q16(static_cast<u32>(wide(static_cast<i32>(unit15(time_word)), static_cast<i32>(kFreeOctaves)) >> 15)); }
 
 // The free time in hundredths of a millisecond, from 20, for the header.
-inline u32 free_centi_ms(i32 time_word) { return static_cast<u32>((static_cast<i64>(free_power(time_word)) * 20 + 32768) >> 16); }
+inline u32 free_centi_ms(i32 time_word) { return static_cast<u32>((wide(static_cast<i32>(free_power(time_word)), 20) + 32768) >> 16); }
 
 // The free time in Q12 samples at 44.1 kHz, from 8.82 samples (0.2 ms).
-inline u32 free_samples_q12(i32 time_word) { return static_cast<u32>((static_cast<i64>(free_power(time_word)) * 36127) >> 16); }
+inline u32 free_samples_q12(i32 time_word) { return static_cast<u32>(wide(static_cast<i32>(free_power(time_word)), 36127) >> 16); }
 
 // Mode's choices: Inc, Rnd, Inc, Rnd, ... kModes in all, so each turn on to
 // a further Rnd brings a new draw, as D-Delay's Randomize button does, and
@@ -229,15 +234,15 @@ inline u32 curve_exponent(u32 curve) {
     if (curve + 64 >= 16384 && curve <= 16384 + 64) return kEven;
     if (curve == 0) return 8192;
     // Curve^2.12655 in Q15: 2 to the -(2.12655 * octaves below 1).
-    const i64 x = (static_cast<i64>(octaves_below(curve)) * 139366) >> 16;  // 2.12655 in Q16
+    const i64 x = wide(static_cast<i32>(octaves_below(curve)), 139366) >> 16;  // 2.12655 in Q16
     const u32 power = x >= 15 * 65536 ? 0 : exp2_q16(static_cast<u32>(15 * 65536 - x)) >> 16;
-    return 8192 + static_cast<u32>((static_cast<i64>(power) * 253952) >> 15);  // 1/8 + 31/8 * power, Q16
+    return 8192 + static_cast<u32>(wide(static_cast<i32>(power), 253952) >> 15);  // 1/8 + 31/8 * power, Q16
 }
 
 inline u32 curved(u32 place, u32 exponent) {
     if (place == 0 || exponent == kEven) return place;
     if (place >= 32768) return 32768;
-    const i64 x = static_cast<i64>(octaves_below(place)) * exponent >> 16;  // Q16 octaves
+    const i64 x = wide(static_cast<i32>(octaves_below(place)), static_cast<i32>(exponent)) >> 16;  // Q16 octaves
     if (x >= 15 * 65536) return 0;
     return exp2_q16(static_cast<u32>(15 * 65536 - x)) >> 16;  // 2^-x in Q15
 }

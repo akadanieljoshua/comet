@@ -134,8 +134,8 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
     // or scattered (Rnd, each side its own), bent by Curve.
     i32 delay[2][kTaps], gain[kTaps];
     for (u32 k = 0; k < kTaps; ++k) {
-        const i64 l = base * spread(deviate, mode, taps, 0, k, curve) >> 15;
-        const i64 r = base * spread(deviate, mode, taps, 1, k, curve) >> 15;
+        const i64 l = wide(static_cast<i32>(base), static_cast<i32>(spread(deviate, mode, taps, 0, k, curve))) >> 15;
+        const i64 r = wide(static_cast<i32>(base), static_cast<i32>(spread(deviate, mode, taps, 1, k, curve))) >> 15;
         delay[0][k] = clamp_time(l);
         delay[1][k] = clamp_time(r);
         gain[k] = k < taps ? kLevel[taps - 1] : 0;
