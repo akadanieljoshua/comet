@@ -10,6 +10,21 @@ them evenly or at random, Pingpong bounces the repeats between the sides, and
 a diffuser inside the feedback loop smears every repeat a little more each time
 round.
 
+![Turning Time with five taps spread by Deviate: the markers glide and smear](docs/screens/time.gif)
+
+| | |
+| --- | --- |
+| ![Defaults: Sync off, 100 ms, one tap](docs/screens/defaults.png) | ![Five taps, Deviate 100, Mode inc](docs/screens/inc.png) |
+| **Defaults:** one tap at 100 ms; Deviate and Curve read off, and the other taps wait on Time | **Inc:** five taps spread evenly by Deviate 100, up to twice Time |
+| ![Five taps, Mode rnd](docs/screens/rnd.png) | ![Pingpong on, Sync 1/4](docs/screens/pingpong.png) |
+| **Rnd** (Shift + encoder 1): the taps scattered, differently on each side | **Pingpong on** (Shift + encoder 2): the right side shows the bounce, a whole Time later |
+| ![Sync 1/4, four taps, Curve 85](docs/screens/curve.png) | |
+| **Curve 85:** with Sync on at 1/4, the taps crowd towards Time | |
+
+These are rendered from Comet's own page code (`display.cpp` and
+`panel.svg.fragment`), frame for frame what the OP-XY draws; only the font
+differs from the device's.
+
 
 Comet is built on the core Ping Pong (Open-XY contributors, MIT), which is
 proven on the OP-XY: its tap reading, its unwritten-sample check, its glide and
