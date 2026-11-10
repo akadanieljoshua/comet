@@ -28,6 +28,9 @@ const i32 kMostFeedback = 2040109466;  // 0.95, Ping Pong's, for echoes
 const i32 kMostRinging = 2146409906;   // 0.9995: a Karplus-Strong string's longest sustain
 // Karplus-Strong comes in below 50 ms and is whole at 20 ms and shorter.
 const i64 kStringStart = 2205 << 8, kStringWhole = 882 << 8;  // Q8 samples: 50 ms, 20 ms
+// The string's share per Q8 sample below kStringStart: a constant, so the blend
+// needs no 64-bit division (the macOS compiler profile has no runtime for one).
+const u32 kStringScale = static_cast<u32>(kMaximum / (kStringStart - kStringWhole));
 const i32 kInner = 1610612736;         // D-Delay's first two allpasses of a series, 0.75
 const i32 kOuter = 1342177280;         // its last two, 0.625
 // D-Delay's tap level n^-0.368 for n taps, so more taps sound about as loud.
@@ -144,7 +147,7 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
     // 50 ms echoes are as Ping Pong's: Feedback up to 0.95 and no average.
     const i64 first_time = delay[0][0];
     const i32 string = first_time >= kStringStart ? 0 : first_time <= kStringWhole ? kMaximum
-        : static_cast<i32>((kStringStart - first_time) * kMaximum / (kStringStart - kStringWhole));
+        : static_cast<i32>(static_cast<u32>(kStringStart - first_time) * kStringScale);
     const i32 rest = kMaximum - feedback_word;
     const i32 ringing = multiply(kMaximum - multiply(multiply(rest, rest), rest), kMostRinging);
     const i32 echo = multiply(feedback_word, kMostFeedback);

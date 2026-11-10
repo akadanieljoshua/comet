@@ -45,6 +45,9 @@ const i32 kLongestCenti = 143000;  // the line's 1.43 s, in hundredths of a ms
 // lines and labels are bound; this scale uses six.
 const u32 kMarks = 7, kShownMarks = 6;
 const i32 kSyncedScale = 480 << 8, kFreeScale = 250000;
+// Q10 pixels per unit, Q16: worked out while compiling, not on the device.
+const i64 kSyncedFactor = (static_cast<i64>(kWidth) << 26) / kSyncedScale;
+const i64 kFreeFactor = (static_cast<i64>(kWidth) << 26) / kFreeScale;
 // Synced marks are in milliseconds at 120 BPM, a beat to 500 ms. The page
 // can't know the tempo (the SDK gives it to the audio only), so at another
 // tempo the marks still fall on beats, but their times are 120 BPM's.
@@ -79,7 +82,6 @@ void draw_taps(DisplayState& state, const Input& input, Frame& frame) {
     // and time snaps them.
     const bool snap = !state.started || state.track != input.track || input.reduced_motion ||
                       state.synced != static_cast<u32>(sync);
-    const i32 scale = sync ? kSyncedScale : kFreeScale;
     const i32 dt = input.elapsed < 0 ? 0 : input.elapsed > 205 ? 205 : input.elapsed;
     const i32 share = (dt << 10) / (dt + kSettle);  // Q10
     for (u32 side = 0; side < 2; ++side)
@@ -97,9 +99,12 @@ void draw_taps(DisplayState& state, const Input& input, Frame& frame) {
     state.started = 1;
     state.track = input.track;
     state.synced = sync;
-    // Q10 pixels for a time on this scale, stopped at the timeline's end.
+    // Q10 pixels for a time on this scale, stopped at the timeline's end: a
+    // constant Q16 factor, so no 64-bit division (the macOS compiler profile has
+    // no runtime for one).
+    const i64 factor = sync ? kSyncedFactor : kFreeFactor;
     auto pixels = [&](i32 units) {
-        const i64 x = (static_cast<i64>(units) * kWidth << 10) / scale;
+        const i64 x = (static_cast<i64>(units) * factor) >> 16;
         return (kLeft << 10) + static_cast<i32>(x > (kWidth << 10) ? kWidth << 10 : x < 0 ? 0 : x);
     };
 
@@ -121,7 +126,7 @@ void draw_taps(DisplayState& state, const Input& input, Frame& frame) {
             const u32 first = kFirstMarker + strip * kSmear;
             const i32 now = pixels(state.at[side][k]), then = pixels(state.trail[kTrail - 1][side][k]);
             for (u32 j = 0; j < kSmear; ++j) {
-                const i32 x = now + static_cast<i32>((static_cast<i64>(then - now) * j) / (kSmear - 1));
+                const i32 x = now + (then - now) * static_cast<i32>(j) / static_cast<i32>(kSmear - 1);
                 const u32 shade = on ? kFade[j] + k : kGreyMarker;
                 place(frame, first + (kSmear - 1 - j), x - 2 * unit, y, unit, shade, fill_and_stroke);
             }
