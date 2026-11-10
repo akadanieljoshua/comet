@@ -2,8 +2,9 @@
 
 A send effect for the OP-XY (Open-XY ID `comet`, shown on the OP-XY as
 `comet`), inspired by the Ursa Major Space Station SST-282 and Sabroi's AS
-D-Delay
-One delay that morphs between a filter, flanger, chorus, resonator, reverb and
+D-Delay.
+
+A delay that morphs between a filter, flanger, chorus, resonator, reverb and
 granular smear. Up to five taps per side read a stereo line; Deviate spreads
 them evenly or at random, Pingpong bounces the repeats between the sides, and
 a diffuser inside the feedback loop smears every repeat a little more each time
