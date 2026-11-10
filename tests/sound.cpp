@@ -225,7 +225,7 @@ int main() {
         check("each Rnd on Mode is a different draw", fresh);
         bool decoded = true;
         for (unsigned m = 0; m < comet::kModes; ++m) decoded = decoded && comet::choice(pick(m, comet::kModes), comet::kModes) == m;
-        check("Mode's 256 choices decode as the stock word encodes them", decoded);
+        check("Mode's 254 choices decode as the stock word encodes them", decoded);
         const double bent = comet::spread(32768, true, 5, 0, 2, comet::curve_exponent(0)) / 32768.0;
         check("Rnd: Curve bends the share before the draw, as D-Delay",
               std::fabs(bent - (1 + comet::kDraw[0][0][1] / 100.0 * std::pow(0.5, 0.125))) < 0.003);

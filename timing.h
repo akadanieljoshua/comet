@@ -56,12 +56,12 @@ inline u32 free_samples_q12(i32 time_word) { return static_cast<u32>((static_cas
 // turning back returns to the draws passed. Choice m is Rnd when odd, with
 // draw m / 2. The choice is saved with the project, and the page reads the
 // same choice, so it always shows the taps the audio plays.
-const u32 kDraws = 128, kModes = 2 * kDraws;  // 256: the most a shift control may have
+const u32 kDraws = 127, kModes = 2 * kDraws;  // 254: a shift control's choices are counted in one byte (255 at most)
 inline bool is_random(u32 mode) { return (mode & 1) != 0; }
 
 // Rnd's draws: D-Delay's Rnd multiplies each tap's share of the spread by a
 // random 0..1 in hundredths (its random 101), drawn apart for left and right.
-// These are 128 such draws for taps 2..5, every one drawn at random, then fixed
+// These are 127 such draws for taps 2..5, every one drawn at random, then fixed
 // so a saved project sounds the same. Only draws that reach past .60 on each
 // side and differ between the sides were kept, so no Rnd bunches all its taps
 // near Time or puts both sides together.
@@ -192,8 +192,7 @@ const unsigned char kDraw[kDraws][2][4] = {
     {{ 91,   9,  25,  32}, { 61,  76,   6,  15}},
     {{100,  86,  12,  69}, { 79,  84,  48,  14}},
     {{ 98,  62,  16,  78}, { 63,  86,  85,  83}},
-    {{ 44,  69,  39,  71}, { 98,  11,   4,  39}},
-    {{ 90,  20,  28,  11}, { 25,  57,  96,  82}}
+    {{ 44,  69,  39,  71}, { 98,  11,   4,  39}}
 };
 // Tap k's draw on one side for this Mode, Q15 (1.00 for Inc).
 inline u32 scatter(u32 mode, u32 side, u32 k) {

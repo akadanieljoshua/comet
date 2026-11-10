@@ -78,9 +78,9 @@ A new project starts both at their first choice, Inc and Off.
   random 0..1, drawn apart for each side, exactly as D-Delay does, so a tap
   lands somewhere between Time and its Inc place, and the taps needn't stay
   in order. D-Delay draws new numbers with its Randomize button; Comet's Mode
-  runs `inc`, `rnd`, `inc`, `rnd`, ... 256 choices, and each further `rnd` is a
+  runs `inc`, `rnd`, `inc`, `rnd`, ... 254 choices, and each further `rnd` is a
   new draw, so turning on to the next `rnd` randomizes, and turning back
-  returns to the draws passed. The 128 draws were all made at random, then
+  returns to the draws passed. The 127 draws were all made at random, then
   fixed (keeping only those that reach past .60 on each side and differ
   between the sides), so the choice saved with a project always sounds
   the same and the page always shows the taps you hear.

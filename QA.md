@@ -80,7 +80,7 @@ as AS D-Delay draws them.
 - [ ] Mode `inc`: the taps sit evenly. Mode `rnd`: they scatter unevenly, differently on each side,
       each between Time and its `inc` place, not always in order, as in D-Delay
 - [ ] Shift + encoder 1 keeps alternating `inc`, `rnd`, `inc`, `rnd`...: each further `rnd` is a new
-      scatter, heard and shown; turning back brings back the scatters passed; it stops after 128 `rnd`s.
+      scatter, heard and shown; turning back brings back the scatters passed; it stops after 127 `rnd`s.
       Save and reload: the same scatter
 - [ ] Switch Mode while playing, synced and free: the taps move without a click
 
