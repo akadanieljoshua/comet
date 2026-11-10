@@ -2,6 +2,6 @@
   "schema": 1,
   "sdk": "1.10",
   "kind": "effect",
-  "description": "One echo that trails into many: five taps from filter, flanger and chorus to resonator and reverb. Inspired by the SST-282 and AS D-Delay.",
+  "description": "A five-tap stereo delay blurring echoes into combs, choruses, plucked strings and reverb washes through spread, curve, random scatter, ping-pong and diffusion.",
   "dryParameter": "dry"
 }
