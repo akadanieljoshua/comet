@@ -34,9 +34,11 @@ struct State {
     u32 started;   // 1 once the controls have been read
     i32 delay[2][kTaps];                     // tap times, smoothed, Q8 samples
     i32 gain[kTaps];                         // tap levels, smoothed, Q31
+    i32 feed[kTaps];                         // each tap's share fed back (the last tap's), smoothed, Q31
     i32 feedback, cross, mix, inner, outer;  // smoothed, Q31
     i32 damping;                             // the Karplus-Strong share, smoothed, Q31
     i32 last[2];                             // the repeats fed back a sample ago, per side
+    i32 limit;                               // the loop's limiter gain, Q31
 };
 void initialize(State& state);
 void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport, opxy::Channel left,

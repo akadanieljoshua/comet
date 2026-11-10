@@ -37,16 +37,16 @@
 <path transform="matrix(1 0 0 1 60 150)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#070707" stroke="#070707" stroke-width="0.5"/>
 <path transform="matrix(1 0 0 1 60 168)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#070707" stroke="#070707" stroke-width="0.5"/>
 <path transform="matrix(1 0 0 1 60 181)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#070707" stroke="#070707" stroke-width="0.5"/>
-<path id="comet_node_8" transform="matrix(1 0 0 1 60 44)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_9" transform="matrix(1 0 0 1 60 57)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_10" transform="matrix(1 0 0 1 60 75)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_11" transform="matrix(1 0 0 1 60 88)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_12" transform="matrix(1 0 0 1 60 106)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_13" transform="matrix(1 0 0 1 60 119)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_14" transform="matrix(1 0 0 1 60 137)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_15" transform="matrix(1 0 0 1 60 150)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_16" transform="matrix(1 0 0 1 60 168)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
-<path id="comet_node_17" transform="matrix(1 0 0 1 60 181)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#121212" stroke="#121212" stroke-width="0.5"/>
+<path id="comet_node_8" transform="matrix(1 0 0 1 60 44)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_9" transform="matrix(1 0 0 1 60 57)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_10" transform="matrix(1 0 0 1 60 75)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_11" transform="matrix(1 0 0 1 60 88)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_12" transform="matrix(1 0 0 1 60 106)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_13" transform="matrix(1 0 0 1 60 119)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_14" transform="matrix(1 0 0 1 60 137)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_15" transform="matrix(1 0 0 1 60 150)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_16" transform="matrix(1 0 0 1 60 168)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
+<path id="comet_node_17" transform="matrix(1 0 0 1 60 181)" d="M0,0 L400,0 L400,11 L0,11 Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="0.5"/>
 <path id="comet_node_18" transform="matrix(1 0 0 1 60 44)" d="M0,0 L1,0 L1,148 L0,148 Z" fill="#1D1D1D" stroke="#1D1D1D" stroke-width="0.5"/>
 <path id="comet_node_19" transform="matrix(1 0 0 1 160 44)" d="M0,0 L1,0 L1,148 L0,148 Z" fill="#1D1D1D" stroke="#1D1D1D" stroke-width="0.5"/>
 <path id="comet_node_20" transform="matrix(1 0 0 1 260 44)" d="M0,0 L1,0 L1,148 L0,148 Z" fill="#1D1D1D" stroke="#1D1D1D" stroke-width="0.5"/>
@@ -181,6 +181,6 @@
 <circle id="comet_palette_12" cx="640" cy="0" r="1" fill="#323232" stroke="#323232" stroke-width="1"/>
 <circle id="comet_palette_13" cx="640" cy="0" r="1" fill="#242424" stroke="#242424" stroke-width="1"/>
 <circle id="comet_palette_14" cx="640" cy="0" r="1" fill="#222222" stroke="#222222" stroke-width="1"/>
-<circle id="comet_palette_15" cx="640" cy="0" r="1" fill="#2A2A2A" stroke="#2A2A2A" stroke-width="1"/>
+<circle id="comet_palette_15" cx="640" cy="0" r="1" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 

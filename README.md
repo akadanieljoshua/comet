@@ -63,11 +63,14 @@ A new project starts both at their first choice, Inc and Off.
   hit rings as a plucked string at about 44,100 / Time-in-samples Hz. It
   blends in from 50 ms to fully at 20 ms (50 Hz); above 50 ms the echo is unchanged.
 - **Dry** is how much of the track's own sound stays as the send rises, read
-  by the OP-XY's mixer (`dryParameter`); Comet never mixes dry itself. At 100,
-  the default, the track keeps its full level, as with any send; at 0 and the
+  by the OP-XY's mixer (`dryParameter`); Comet never mixes dry itself. 50 is
+  the default. At 100 the track keeps its full level, as with any send; at 0 and the
   send full, only Comet's repeats are heard.
-- **Feedback** returns the repeats. Five taps in phase return no more than
-  Feedback, so below 100 they always die away; at 100 they hold.
+- **Feedback** returns the repeats, up to 98 % a pass at 100 (50 by default).
+  Spread taps sustain about as long as one tap: the loop is scaled for taps
+  that add by power once Deviate passes 25, and for taps in phase below that.
+  A limiter in the loop holds the repeats under -6 dB, so taps that still add
+  up (low notes, close taps) swell and settle like tape instead of clipping.
 - **Pingpong** (Shift + encoder 2) is a switch; a new project starts it off. On: a full ping-pong, the send entering on the
   left and every repeat crossing to the other side, so the repeats bounce
   left, right, left at Time apart. Off: each side repeats on its own side.
@@ -86,7 +89,8 @@ A new project starts both at their first choice, Inc and Off.
   the same and the page always shows the taps you hear.
 - **Deviate** is how far Mode spreads the taps, up to twice Time. As in
   D-Delay, which greys Deviate and Mode out with one tap, one tap is a plain
-  delay: Deviate, Curve and Mode read `off` and do nothing.
+  delay: Deviate and Curve read `off` and they, Mode and the other taps'
+  markers do nothing. Deviate at 0, the default, also reads `off`, with Curve.
 - **Curve** is D-Delay's: it bends the taps' places in the spread, keeping
   the first and last where they are, by raising each place to a power from
   1/8 to 4 on D-Delay's own scale (1/8 + 31/8 x Curve^2.12655, so most of the

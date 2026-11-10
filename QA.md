@@ -42,7 +42,7 @@ in the spirit of AS D-Delay's display.
 - [ ] Each control through its whole range, both directions: the sound follows, with no clicks, jumps or
       silence at the ends. Sync and Pingpong read `off`/`on`; Time a note length under `time`
       when synced, or a number under `time ms` / `time s` when not; Taps `1`..`5`; Mode `inc`/`rnd`;
-      Deviate, Curve and Mode `off` with one tap; the rest 0..100; Dry starts at 100
+      Deviate and Curve `off` with one tap or Deviate 0; the rest 0..100; Dry starts at 50
 - [ ] Every caption fits its column at 1:1: `1/16T`, `1/32D`, `1/16D`, `999`, `1.40`, `time ms`, `feedback`,
       `deviate`, `diffuse`, `pingpong`
 - [ ] Sync, Taps, Mode and Pingpong move one choice per detent, both directions, and stop at their ends
@@ -74,8 +74,8 @@ in the spirit of AS D-Delay's display.
 
 ## Taps, Mode and Deviate
 
-- [ ] Taps 1: Comet is a plain delay, as in D-Delay: Deviate, Curve and Mode read `off` and turning them changes
-      nothing. Taps 2 to 5: they read their values again, and Deviate spreads taps 2..5 out to
+- [ ] Taps 1: Comet is a plain delay, as in D-Delay: Deviate and Curve read `off`, and turning them or Mode changes
+      nothing, heard or on the screen: the grey markers of taps 2..5 stay on Time. Taps 2 to 5: they read their values again, and Deviate spreads taps 2..5 out to
       (1 + Deviate x k/4) times Time, up to twice
 - [ ] Mode `inc`: the taps sit evenly. Mode `rnd`: they scatter unevenly, differently on each side,
       each between Time and its `inc` place, not always in order, as in D-Delay
@@ -163,7 +163,11 @@ Unmute it everywhere.
       **qa** loads as last saved
 - [ ] Load **plain**: track 1 has its own sound, nothing of **qa** shows. Load **qa** again: all back
 - [ ] While playing, load **plain** and then **qa** again: nothing freezes, no stray values
-- [ ] Create a new project: put Comet on a track; it starts at its defaults
+- [ ] Create a new project: put Comet on a track; it starts at its defaults: Sync off, Time 100 ms
+      (1/4 with Sync on), Feedback 50, Dry 50, Taps 1, Deviate and Curve `off` (Curve 50 underneath),
+      Diffuse 0, Mode `inc`, Pingpong off
+- [ ] Feedback 100 with Taps 5 and Deviate 100: the repeats sustain about as long as with one tap,
+      and never clip or run away; with Deviate 0 and low notes they swell and settle, not distort
 - [ ] On a firmware without Comet, open **qa**: it loads, and the rest of the project plays
 
 ## CPU

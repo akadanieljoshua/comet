@@ -6,7 +6,7 @@
     {
       "id": "sync",
       "label": "Sync",
-      "default": 1,
+      "default": 0,
       "mapping": {
         "kind": "enum",
         "labels": [
@@ -19,7 +19,7 @@
     {
       "id": "time",
       "label": "Time",
-      "default": 0.75,
+      "default": 0.70192,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -30,7 +30,7 @@
     {
       "id": "feedback",
       "label": "Feedback",
-      "default": 0.4,
+      "default": 0.5,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -41,7 +41,7 @@
     {
       "id": "dry",
       "label": "Dry",
-      "default": 1,
+      "default": 0.5,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -69,7 +69,7 @@
     {
       "id": "deviate",
       "label": "Deviate",
-      "default": 0.5,
+      "default": 0,
       "mapping": {
         "kind": "linear",
         "minimum": 0,

@@ -85,7 +85,7 @@ int main() {
           says(0, "mode") && says(4, "inc") && says(1, "pingpong") && says(5, "on"));
     s[4] = pick(0, 5);
     show(s, 0);
-    check("Shift with one tap: Mode reads off", says(4, "off") && says(5, "on"));
+    check("Shift with one tap: Mode still reads its choice", says(4, "inc") && says(5, "on"));
     check("a valid frame with Shift", opxy::draw::valid(frame));
     input.shift = 0;
     show(s, 0);

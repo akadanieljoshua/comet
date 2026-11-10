@@ -67,7 +67,9 @@ void draw_taps(DisplayState& state, const Input& input, Frame& frame) {
     const i32* const slots = input.slots;
     const bool sync = synced(slots[0]);
     const u32 taps = 1 + choice(slots[4], 5);
-    const u32 deviate = unit15(slots[5]);
+    // With one tap Deviate, Curve and Mode are off: the other taps' markers
+    // wait on Time rather than following them.
+    const u32 deviate = taps == 1 ? 0 : unit15(slots[5]);
     const u32 exponent = curve_exponent(unit15(slots[6]));
     const u32 mode = input.choices[0];  // Inc, Rnd, Inc, Rnd, ...
     const bool pingpong = input.choices[1] == 1;
@@ -214,21 +216,20 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     copy(values[4], header_capacity, digit);
     // Deviate, Curve and Mode spread taps 2..5, as in D-Delay, which greys them
     // out with one tap: then Comet is a plain delay and they read off.
-    if (taps == 1) {
-        copy(values[5], header_capacity, "off");
-        copy(values[6], header_capacity, "off");
-    } else {
-        header_amount(values[5], header_capacity, input.slots[5]);
-        header_amount(values[6], header_capacity, input.slots[6]);
-    }
+    // Deviate at 0 is off too, and Curve with it: there is nothing to bend.
+    const bool spread_off = taps == 1 || unit15(input.slots[5]) == 0;
+    if (spread_off) copy(values[5], header_capacity, "off");
+    else header_amount(values[5], header_capacity, input.slots[5]);
+    if (spread_off) copy(values[6], header_capacity, "off");
+    else header_amount(values[6], header_capacity, input.slots[6]);
     header_amount(values[7], header_capacity, input.slots[7]);
     const char* titles[8] = {"Sync", time, "Feedback", "Dry", "Taps", "Deviate", "Curve", "Diffuse"};
     // While Shift is held, the edited row's first two columns show the shift
-    // row: Mode (off with one tap) and Pingpong.
+    // row: Mode and Pingpong.
     if (input.shift) {
         const u32 column = input.line ? 4 : 0;
         titles[column] = "Mode";
-        copy(values[column], header_capacity, taps == 1 ? "off" : is_random(input.choices[0]) ? "rnd" : "inc");
+        copy(values[column], header_capacity, is_random(input.choices[0]) ? "rnd" : "inc");
         titles[column + 1] = "Pingpong";
         copy(values[column + 1], header_capacity, input.choices[1] ? "on" : "off");
     }

@@ -323,7 +323,7 @@ int main() {
             return n < 44100 ? static_cast<opxy::i32>((n * 2654435761u) & 0xffffffffu) / 2 : 0;
         }, l, r);
         check("half-scale noise through five taps at full Feedback never clips", peak(l, 0, l.size()) < 0.999 && peak(r, 0, r.size()) < 0.999);
-        check("even full Feedback dies away (it stops at 95 %)", peak(l, l.size() - 4410, l.size()) < 1e-3);
+        check("even full Feedback dies away (it stops at 98 %)", peak(l, l.size() - 4410, l.size()) < 1e-3);
     }
     // Diffuse smears each repeat: lower peaks, the energy spread longer.
     {
@@ -380,8 +380,8 @@ int main() {
         response(e, 300, le, re);
         double second = 0;
         for (size_t n = 8820 - 6; n <= 8820 + 6; ++n) second += le[n];
-        check("an echo above 50 ms is unchanged: no average, Feedback up to 0.95",
-              std::fabs(second / 0.125 - 0.9 * 0.95) < 0.02);
+        check("an echo above 50 ms is unchanged: no average, Feedback up to 0.98",
+              std::fabs(second / 0.125 - 0.9 * 0.98) < 0.02);
     }
     // Loud material comes back clean: a sine at full and at half scale,
     // through Feedback, Taps and Diffuse, is the same sine at half level.

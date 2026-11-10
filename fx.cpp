@@ -24,7 +24,7 @@ using opxy::q31::multiply;
 const i32 kMaximum = opxy::q31::maximum, kMinimum = -kMaximum - 1;
 const i32 kShortest = 2 << 8;  // Q8 samples: down to comb and resonator times
 const i32 kLongest = static_cast<i32>((kLine - 2) << 8);
-const i32 kMostFeedback = 2040109466;  // 0.95, Ping Pong's, for echoes
+const i32 kMostFeedback = 2104533975;  // 0.98, for echoes
 const i32 kMostRinging = 2146409906;   // 0.9995: a Karplus-Strong string's longest sustain
 // Karplus-Strong comes in below 50 ms and is whole at 20 ms and shorter.
 const i64 kStringStart = 2205 << 8, kStringWhole = 882 << 8;  // Q8 samples: 50 ms, 20 ms
@@ -35,9 +35,10 @@ const i32 kInner = 1610612736;         // D-Delay's first two allpasses of a ser
 const i32 kOuter = 1342177280;         // its last two, 0.625
 // D-Delay's tap level n^-0.368 for n taps, so more taps sound about as loud.
 const i32 kLevel[kTaps] = {kMaximum, 1664132314, 1433533775, 1289572734, 1187941016};
-// The rest of 1/n for the repeats fed back, so n taps in phase return no more
-// than Feedback.
-const i32 kLoop[kTaps] = {kMaximum, 1385612784, 1072335162, 894033717, 776416667};
+// The loop's limiter holds the repeat fed back under half of full scale
+// (-6 dB), so a long Feedback on held or loud sound swells and settles like
+// tape instead of clipping.
+const i32 kCeiling = 1073741824;
 
 i32 add(i32 a, i32 b) {  // saturating
     if (b > 0 && a > kMaximum - b) return kMaximum;
@@ -132,26 +133,32 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
 
     // Deviate spreads tap k up to (1 + Deviate * k/4) times Time, evenly (Inc)
     // or scattered (Rnd, each side its own), bent by Curve.
-    i32 delay[2][kTaps], gain[kTaps];
+    // Only the last tap feeds back, as in most multi-tap delays: each repeat
+    // brings the whole pattern again, and any number of taps sustains as long
+    // as one (taps summed and fed back would need scaling by 1/n to stay
+    // stable where they line up, which made them die away fast).
+    i32 delay[2][kTaps], gain[kTaps], feed[kTaps];
     for (u32 k = 0; k < kTaps; ++k) {
         const i64 l = wide(static_cast<i32>(base), static_cast<i32>(spread(deviate, mode, taps, 0, k, curve))) >> 15;
         const i64 r = wide(static_cast<i32>(base), static_cast<i32>(spread(deviate, mode, taps, 1, k, curve))) >> 15;
         delay[0][k] = clamp_time(l);
         delay[1][k] = clamp_time(r);
         gain[k] = k < taps ? kLevel[taps - 1] : 0;
+        feed[k] = k == taps - 1 ? kMaximum : 0;
     }
     // Short times turn the delay into a Karplus-Strong string: the repeats fed
     // back through a two-sample average, which darkens them a little each pass
     // as a plucked string does, and Feedback reaching closer to 1, curved so
     // its top sets how long the string rings (1 - (1 - Feedback)^3). Above
-    // 50 ms echoes are as Ping Pong's: Feedback up to 0.95 and no average.
-    const i64 first_time = delay[0][0];
-    const i32 string = first_time >= kStringStart ? 0 : first_time <= kStringWhole ? kMaximum
-        : static_cast<i32>(static_cast<u32>(kStringStart - first_time) * kStringScale);
+    // 50 ms echoes have Feedback up to 0.98 and no average. The last tap is
+    // the one fed back, so its time is the string's.
+    const i64 fed_time = delay[0][taps - 1];
+    const i32 string = fed_time >= kStringStart ? 0 : fed_time <= kStringWhole ? kMaximum
+        : static_cast<i32>(static_cast<u32>(kStringStart - fed_time) * kStringScale);
     const i32 rest = kMaximum - feedback_word;
     const i32 ringing = multiply(kMaximum - multiply(multiply(rest, rest), rest), kMostRinging);
     const i32 echo = multiply(feedback_word, kMostFeedback);
-    const i32 feedback = multiply(blend(echo, ringing, string), kLoop[taps - 1]);
+    const i32 feedback = blend(echo, ringing, string);
     const i32 cross = pingpong ? kMaximum : 0;  // settles, so switching glides
     const i32 mix = add(diffusion, diffusion);  // fully diffused from halfway
     const i32 inner = multiply(diffusion, kInner), outer = multiply(diffusion, kOuter);
@@ -161,6 +168,7 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
             state.delay[0][k] = delay[0][k];
             state.delay[1][k] = delay[1][k];
             state.gain[k] = gain[k];
+            state.feed[k] = feed[k];
         }
         state.feedback = feedback;
         state.cross = cross;
@@ -168,6 +176,7 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
         state.inner = inner;
         state.outer = outer;
         state.damping = string;
+        state.limit = kMaximum;
         state.started = 1;
     }
 
@@ -176,7 +185,8 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
     u32 active = 0;
     for (u32 k = 0; k < kTaps; ++k) {
         state.gain[k] = settle(state.gain[k], gain[k]);
-        if (state.gain[k]) active = k + 1;
+        state.feed[k] = settle(state.feed[k], feed[k]);  // a new last tap crossfades in
+        if (state.gain[k] || state.feed[k]) active = k + 1;
     }
     for (u32 k = active; k < kTaps; ++k) {
         state.delay[0][k] = delay[0][k];
@@ -188,21 +198,28 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
     state.inner = settle(state.inner, inner);
     state.outer = settle(state.outer, outer);
     state.damping = settle(state.damping, string);
+    const i32 loop_gain = multiply(state.feedback, state.limit);
+    u32 peak = 0;
 
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
         // The taps, each side its own times, gliding like tape.
-        i32 out_left = 0, out_right = 0;
+        i32 out_left = 0, out_right = 0, fed_left = 0, fed_right = 0;
         for (u32 k = 0; k < active; ++k) {
             state.delay[0][k] = glide(state.delay[0][k], delay[0][k]);
             state.delay[1][k] = glide(state.delay[1][k], delay[1][k]);
-            out_left = add(out_left, multiply(tap(line, state, state.delay[0][k], 0), state.gain[k]));
-            out_right = add(out_right, multiply(tap(line, state, state.delay[1][k], 1), state.gain[k]));
+            const i32 l = tap(line, state, state.delay[0][k], 0), r = tap(line, state, state.delay[1][k], 1);
+            out_left = add(out_left, multiply(l, state.gain[k]));
+            out_right = add(out_right, multiply(r, state.gain[k]));
+            if (state.feed[k]) {
+                fed_left = add(fed_left, multiply(l, state.feed[k]));
+                fed_right = add(fed_right, multiply(r, state.feed[k]));
+            }
         }
 
-        // What feeds back: the repeats, crossed over when Pingpong is on,
+        // What feeds back: the last tap, crossed over when Pingpong is on,
         // averaged with the sample before by the Karplus-Strong share.
-        const i32 back_left = blend(out_left, out_right, state.cross);
-        const i32 back_right = blend(out_right, out_left, state.cross);
+        const i32 back_left = blend(fed_left, fed_right, state.cross);
+        const i32 back_right = blend(fed_right, fed_left, state.cross);
         const i32 string_left = blend(back_left, add(opxy::q31::half(back_left), opxy::q31::half(state.last[0])), state.damping);
         const i32 string_right = blend(back_right, add(opxy::q31::half(back_right), opxy::q31::half(state.last[1])), state.damping);
         state.last[0] = back_left;
@@ -211,8 +228,13 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
         // Pingpong on both sides together into the left only, so it bounces.
         const i32 half_left = opxy::q31::half(left[i]), half_right = opxy::q31::half(right[i]);
         const i32 both = add(opxy::q31::half(half_left), opxy::q31::half(half_right));
-        i32 in_left = add(blend(half_left, both, state.cross), multiply(string_left, state.feedback));
-        i32 in_right = add(multiply(half_right, kMaximum - state.cross), multiply(string_right, state.feedback));
+        const i32 repeat_left = multiply(string_left, loop_gain), repeat_right = multiply(string_right, loop_gain);
+        const u32 size_left = repeat_left < 0 ? 0u - static_cast<u32>(repeat_left) : static_cast<u32>(repeat_left);
+        const u32 size_right = repeat_right < 0 ? 0u - static_cast<u32>(repeat_right) : static_cast<u32>(repeat_right);
+        if (size_left > peak) peak = size_left;
+        if (size_right > peak) peak = size_right;
+        i32 in_left = add(blend(half_left, both, state.cross), repeat_left);
+        i32 in_right = add(multiply(half_right, kMaximum - state.cross), repeat_right);
 
         // Diffuse: the allpass series, blended in by Diffuse.
         if (state.mix) {
@@ -235,5 +257,16 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
         left[i] = out_left;
         right[i] = out_right;
     }
+
+    // The limiter, once a block: down at once to what holds this block's
+    // loudest repeat at the ceiling, back up over about 0.2 s.
+    i32 target = kMaximum;
+    if (peak > static_cast<u32>(kCeiling)) {
+        u32 ratio = (static_cast<u32>(kCeiling) >> 1) / (peak >> 16);  // Q15: 0.5 .. 1
+        if (ratio > 32767) ratio = 32767;
+        target = multiply(state.limit, static_cast<i32>(ratio << 16));
+    }
+    if (target < state.limit) state.limit = target;
+    else state.limit += (target - state.limit) / 128 ? (target - state.limit) / 128 : target - state.limit;
 }
 }
