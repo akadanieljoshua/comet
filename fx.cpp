@@ -210,7 +210,10 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
             const i32 l = tap(line, state, state.delay[0][k], 0), r = tap(line, state, state.delay[1][k], 1);
             out_left = add(out_left, multiply(l, state.gain[k]));
             out_right = add(out_right, multiply(r, state.gain[k]));
-            if (state.feed[k]) {
+            if (state.feed[k] == kMaximum) {  // settled: the one tap fed back
+                fed_left = l;
+                fed_right = r;
+            } else if (state.feed[k]) {  // crossfading to a new last tap
                 fed_left = add(fed_left, multiply(l, state.feed[k]));
                 fed_right = add(fed_right, multiply(r, state.feed[k]));
             }
