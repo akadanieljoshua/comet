@@ -36,12 +36,13 @@ for each tap, its left side above its right, on one fixed timeline, 2.5 s
 long and marked every half second (`0 500ms 1 s 1.5 s 2 s 2.5 s`) whatever
 Sync and Pingpong are; a tap or bounce past 2.5 s stops at its end. While
 Sync is on the page can't know the project tempo, so it places note lengths
-at 120 BPM: a beat to each mark. Each tap
-is a marker in its own grey, as the OP-XY's screens are monochrome: tap 1
-95 %, stepping evenly down to tap 5 at 28 %, so the later taps read as quieter
-echoes. Every row's strips are one dark grey; taps that Taps leaves out are a
-dimmer grey on a near-black row. (A version with D-Delay's tap colours is kept
-in `panel.colour.svg.fragment` for later.) A marker
+at 120 BPM: a beat to each mark. Each tap is a marker in its own colour, as
+D-Delay's are: yellow, orange, green, cyan and blue for taps 1 to 5. Every
+row's strips are one dark grey; taps that Taps leaves out are a dim grey on a
+near-black row. With the installer's **Grayscale machine graphics** on, Comet
+uses its own grey design (`panel.grayscale.svg.fragment`) instead of the
+automatic conversion: each tap a grey of its own, tap 1 95 %, stepping evenly
+down to tap 5 at 28 %, so the later taps read as quieter echoes. A marker
 glides to its tap and smears back over where it was for about 170 ms,
 fading slowly in steps (full, 60 %, 30 %) the further back it reaches, so
 turning Time, Deviate or Curve blurs the taps as they move. With Pingpong on,
@@ -170,7 +171,8 @@ declare SDK 1.5 and `"graphics": {"grayscale": "panel.grayscale.svg.fragment"}`
 in machine.json and supply that SVG fragment. Follow the SDK's
 [grayscale artwork contract](https://github.com/etcetc000/open-xy/blob/staging/docs/display.md#grayscale-artwork).
 Already-grayscale originals remain unchanged; without a variant, the installer
-converts colors automatically. Comet draws its own page in greys.
+converts colors automatically. Comet, an effect with its own page, supplies its
+grey design this way (effects can since SDK staging after 0.0.6).
 
 ```sh
 python ../open-xy/sdk.py test --machine . --cxx clang++ --host-cxx g++

@@ -3,5 +3,8 @@
   "sdk": "1.10",
   "kind": "effect",
   "description": "A five-tap stereo delay blurring echoes into combs, choruses, plucked strings and reverb washes through spread, curve, random scatter, ping-pong and diffusion.",
-  "dryParameter": "dry"
+  "dryParameter": "dry",
+  "graphics": {
+    "grayscale": "panel.grayscale.svg.fragment"
+  }
 }
