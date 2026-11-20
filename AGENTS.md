@@ -1,6 +1,6 @@
 # Machine development
 
-This repository holds Comet (`comet`, shown on the OP-XY as `comet`). Keep the
+This repository holds Comet (named Comet in the builder; the OP-XY shows its ID, `comet`). Keep the
 credits in NOTICE.md (Ursa Major SST-282, Sabroi's AS D-Delay, pitchloop89) and
 the Ping Pong MIT notice in LICENSE with every copy. The machine is at the repository root.
 Read README.md and use the [Open-XY SDK](https://github.com/etcetc000/open-xy)

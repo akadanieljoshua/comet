@@ -1,7 +1,7 @@
 # Comet
 
-A send effect for the OP-XY (Open-XY ID `comet`, shown on the OP-XY as
-`comet`), inspired by the Ursa Major Space Station SST-282 and Sabroi's AS
+A send effect for the OP-XY (named Comet in the builder; the OP-XY shows its
+Open-XY ID, `comet`), inspired by the Ursa Major Space Station SST-282 and Sabroi's AS
 D-Delay.
 
 A delay that morphs between a filter, flanger, chorus, resonator, reverb and
