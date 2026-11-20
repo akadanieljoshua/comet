@@ -21,9 +21,18 @@ round.
 | ![Sync 1/4, four taps, Curve 85](docs/screens/curve.png) | |
 | **Curve 85:** with Sync on at 1/4, the taps crowd towards Time | |
 
-These are rendered from Comet's own page code (`display.cpp` and
-`panel.svg.fragment`), frame for frame what the OP-XY draws; only the font
-differs from the device's.
+With **Grayscale machine graphics** on in the builder, Comet draws its own grey
+design instead, each tap a grey of its own:
+
+![The grey design: turning Time with five spread taps](docs/screens/grayscale/time.gif)
+
+| | |
+| --- | --- |
+| ![Grey design: five taps, Deviate 100, Mode inc](docs/screens/grayscale/inc.png) | ![Grey design: Pingpong on](docs/screens/grayscale/pingpong.png) |
+
+These are rendered from Comet's own page code (`display.cpp` with
+`panel.svg.fragment`, or `panel.grayscale.svg.fragment` for the grey design),
+frame for frame what the OP-XY draws; only the font differs from the device's.
 
 
 Comet is built on the core Ping Pong (Open-XY contributors, MIT), which is
