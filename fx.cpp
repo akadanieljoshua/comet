@@ -130,22 +130,11 @@ void initialize(State& state) {
     state = State();
 }
 
-void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport, opxy::Channel left,
-             opxy::Channel right, opxy::Parameters parameters) {
-    if (!buffer.words || buffer.count < kBufferWords) {
-        for (unsigned i = 0; i < opxy::block_frames; ++i) left[i] = right[i] = 0;
-        return;
-    }
-    i32* const line = buffer.words;
-    i32* const left_diffuser = buffer.words + kLines;
-    i32* const right_diffuser = left_diffuser + kDiffuserWords;
-
-    // Page 1: Sync, Time, Feedback, Dry. Page 2: Taps, Deviate, Curve, Diffuse.
-    // The shift row, after the eight: Shift + encoder 1 Mode, + encoder 2
-    // Pingpong. Dry is the stock source mixer's (machine.json's dryParameter):
-    // this effect never reads it and returns only wet audio.
+// Everything the controls set, worked out from them: the taps' times, levels
+// and feedback shares, and the loop's amounts.
+static void configure(Setup& setup, opxy::Parameters parameters, u32 bpm) {
     const bool sync = synced(parameters[0]);
-    const i64 base = (sync ? synced_samples_q12(division(parameters[1]), transport.bpm_x10)
+    const i64 base = (sync ? synced_samples_q12(division(parameters[1]), bpm)
                            : free_samples_q12(parameters[1])) >> 4;  // Q8 samples
     const i32 feedback_word = control(parameters[2]);
     const u32 taps = 1 + choice(parameters[4], kTaps);
@@ -161,7 +150,9 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
     // brings the whole pattern again, and any number of taps sustains as long
     // as one (taps summed and fed back would need scaling by 1/n to stay
     // stable where they line up, which made them die away fast).
-    i32 delay[2][kTaps], gain[kTaps], feed[kTaps];
+    i32 (&delay)[2][kTaps] = setup.delay;
+    i32* const gain = setup.gain;
+    i32* const feed = setup.feed;
     for (u32 k = 0; k < kTaps; ++k) {
         const i64 l = wide(static_cast<i32>(base), static_cast<i32>(spread(deviate, mode, taps, 0, k, curve))) >> 15;
         const i64 r = wide(static_cast<i32>(base), static_cast<i32>(spread(deviate, mode, taps, 1, k, curve))) >> 15;
@@ -177,15 +168,49 @@ void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport
     // 50 ms echoes have Feedback up to 0.98 and no average. The last tap is
     // the one fed back, so its time is the string's.
     const i64 fed_time = delay[0][taps - 1];
-    const i32 string = fed_time >= kStringStart ? 0 : fed_time <= kStringWhole ? kMaximum
+    setup.string = fed_time >= kStringStart ? 0 : fed_time <= kStringWhole ? kMaximum
         : static_cast<i32>(static_cast<u32>(kStringStart - fed_time) * kStringScale);
     const i32 rest = kMaximum - feedback_word;
     const i32 ringing = multiply(kMaximum - multiply(multiply(rest, rest), rest), kMostRinging);
     const i32 echo = multiply(feedback_word, kMostFeedback);
-    const i32 feedback = blend(echo, ringing, string);
-    const i32 cross = pingpong ? kMaximum : 0;  // settles, so switching glides
-    const i32 mix = add(diffusion, diffusion);  // fully diffused from halfway
-    const i32 inner = multiply(diffusion, kInner), outer = multiply(diffusion, kOuter);
+    setup.feedback = blend(echo, ringing, setup.string);
+    setup.cross = pingpong ? kMaximum : 0;  // settles, so switching glides
+    setup.mix = add(diffusion, diffusion);  // fully diffused from halfway
+    setup.inner = multiply(diffusion, kInner);
+    setup.outer = multiply(diffusion, kOuter);
+}
+
+void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport, opxy::Channel left,
+             opxy::Channel right, opxy::Parameters parameters) {
+    if (!buffer.words || buffer.count < kBufferWords) {
+        for (unsigned i = 0; i < opxy::block_frames; ++i) left[i] = right[i] = 0;
+        return;
+    }
+    i32* const line = buffer.words;
+    i32* const left_diffuser = buffer.words + kLines;
+    i32* const right_diffuser = left_diffuser + kDiffuserWords;
+
+    // Page 1: Sync, Time, Feedback, Dry. Page 2: Taps, Deviate, Curve, Diffuse.
+    // The shift row, after the eight: Shift + encoder 1 Mode, + encoder 2
+    // Pingpong. Dry is the stock source mixer's (machine.json's dryParameter):
+    // this effect never reads it and returns only wet audio.
+    // The setup is worked out again only when a control or the tempo moves:
+    // the tap times' curve and scatter maths is most of a still block's cost,
+    // and the same controls always give the same setup.
+    bool changed = !state.configured || state.bpm != transport.bpm_x10;
+    for (u32 p = 0; p < kControlWords; ++p) changed |= state.controls[p] != parameters[p];
+    if (changed) {
+        configure(state.setup, parameters, transport.bpm_x10);
+        for (u32 p = 0; p < kControlWords; ++p) state.controls[p] = parameters[p];
+        state.bpm = transport.bpm_x10;
+        state.configured = 1;
+    }
+    const Setup& setup = state.setup;
+    const auto& delay = setup.delay;
+    const i32* const gain = setup.gain;
+    const i32* const feed = setup.feed;
+    const i32 string = setup.string, feedback = setup.feedback, cross = setup.cross;
+    const i32 mix = setup.mix, inner = setup.inner, outer = setup.outer;
 
     if (!state.started) {  // start at the set controls, not gliding from zero
         for (u32 k = 0; k < kTaps; ++k) {

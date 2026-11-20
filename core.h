@@ -26,6 +26,15 @@ const u32 kBufferWords = 131072;  // definition.json: bufferBytes 524288
 const u32 kLine = (kBufferWords - 2 * kDiffuserWords) / 2;  // 63,104 frames, 1.43 s
 const u32 kLines = 2 * kLine;  // words the lines take
 
+// What the controls set, kept until they move (fx.cpp's configure).
+struct Setup {
+    i32 delay[2][kTaps];  // tap times, Q8 samples
+    i32 gain[kTaps];      // tap levels, Q31
+    i32 feed[kTaps];      // each tap's share fed back, Q31
+    i32 string, feedback, cross, mix, inner, outer;
+};
+const u32 kControlWords = 10;  // the eight controls and the shift row's two
+
 struct State {
     u32 write;     // the next frame of the line
     u32 written;   // positions written since initialize, up to kLine
@@ -39,6 +48,10 @@ struct State {
     i32 damping;                             // the Karplus-Strong share, smoothed, Q31
     i32 last[2];                             // the repeats fed back a sample ago, per side
     i32 limit;                               // the loop's limiter gain, Q31
+    u32 configured;                          // 1 once setup holds the controls below
+    i32 controls[kControlWords];             // the control words setup was worked out from
+    u32 bpm;                                 // and the tempo, in tenths of a BPM
+    Setup setup;
 };
 void initialize(State& state);
 void process(State& state, opxy::Buffer buffer, const opxy::Transport& transport, opxy::Channel left,
